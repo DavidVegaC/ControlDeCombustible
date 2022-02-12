@@ -101,8 +101,8 @@ public class EmbeddedPtclWifi extends Fragment implements EmbeddedWifiListener {
     private byte[] bufferTemporal = new byte[300];
     Handler handlerSocket;
     final int handlerState = 0;
-    //public static  String SERVER_IP = "192.168.1.98";
-    public static  String SERVER_IP = "192.168.1.199";
+    //public static  String SERVER_IP = "192.168.1.20";
+    public static  String SERVER_IP = "192.168.0.199";
     //public static  String SERVER_IP = "192.168.4.22";
     public static  int SERVER_PORT = 2230;
     //public static  int SERVER_PORT = 80;
@@ -132,7 +132,8 @@ public class EmbeddedPtclWifi extends Fragment implements EmbeddedWifiListener {
 
     private NetworkUtil networkUtil;
 
-    private String SSID="TP-LINK_AP_F2D8";
+    //private String SSID="TP-LINK_AP_F2D8";
+    private String SSID="TP-Link_5C52_5G";
     //private String SSID="MOVISTAR_1B9E";
     //private String SSID="EMBEDDED_COMB";
     private String Password="123456789";
@@ -202,6 +203,8 @@ public class EmbeddedPtclWifi extends Fragment implements EmbeddedWifiListener {
 
     Thread threadBateria;
     Handler handlerBateria = new Handler();
+
+    Thread threadValidateSocket;
 
     //TRANSACCIONES PENDIENTES
     int primeraTransaccionAlmacenada, ultimaTransaccionAlmacenada, ticketAlmacenadoAPP, ticketASolicitar, ticketsLeidos;
@@ -292,14 +295,15 @@ public class EmbeddedPtclWifi extends Fragment implements EmbeddedWifiListener {
         lySyncTransactions.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(validateStatusHose()){
+                /*if(validateStatusHose()){
                     mainListener.showProgressDialog("Recuperando Transacciones Pendientes.");
                     ticketAlmacenadoAPP = crudOperations.getLastTicketTransaction();
                     clientTCPThread.write(EmbeddedPtcl.b_ext_solicitar_info_transacciones);
                 }else
                     mostrarMensajeUsuario("Hay mangueras abasteciendose");
+                 */
 
-
+                renovarSocket();
             }
         });
 
@@ -386,6 +390,33 @@ public class EmbeddedPtclWifi extends Fragment implements EmbeddedWifiListener {
             }
         });
         threadBateria.start();
+    }
+
+    private void renovarSocket(){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Log.v("davega>","entrando hilo");
+                try {
+                    Thread.sleep(4*1000);
+                    //finalizar socket
+                    //running=false;
+                    clientTCPThread.cancel(true);
+                    clientTCPThread.onCancelled();
+
+                    clientTCPThread = null;
+
+                    Thread.sleep(200);
+                    //reiniciar socket
+                    clientTCPThread =new ClientTCPThread();
+                    clientTCPThread.execute("");
+
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }).start();
     }
 
     public void mostrarMensajeUsuario(final String mensaje){
@@ -479,18 +510,20 @@ public class EmbeddedPtclWifi extends Fragment implements EmbeddedWifiListener {
 
                         //in this while the client listens for the messages sent by the server
                         int tamBytes = 0;
+                        Log.d("TCP Client > davega", "Davegaa1");
                         while (mRun&&running) {
+                            Log.d("TCP Client > davega", "Davegaa2");
                             if ( clientTCPThread.isCancelled()) break;
                             bufferTemporal = new byte[300];
                             if (!wifiSocket.isClosed()) {
+
                                 bytes = 0;
                                 //mBufferIn.read(lenBytes, 0, 10);
                                 bytes = mBufferIn.read(bufferTemporal);
-
+                                Log.d("TCP Client > davega >bytes", ""+bytes);
                                 handlerSocket.obtainMessage(handlerState, bytes, -1, bufferTemporal).sendToTarget();
 
                             }
-
                         }
                     } catch (IOException e) {
 
